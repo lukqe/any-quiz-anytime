@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Any Quiz Anytime</title>
+    <meta name="description" content="A self-contained, mobile-first Markdown Quiz Engine">
+    <!-- AQA Settings -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#121212">
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- View: Quiz List -->
+        <div id="view-list" class="view active-view">
+            <header style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div>
+                    <h1>My Quizzes</h1>
+                    <p>Learn and master anything.</p>
+                </div>
+                <button id="btn-go-admin" class="btn secondary-btn small-btn">Admin</button>
+            </header>
+            
+            <main>
+                <div class="actions">
+                    <label for="file-upload" class="btn primary-btn">
+                        Upload Quiz (.md)
+                        <input type="file" id="file-upload" accept=".md" multiple style="display: none;">
+                    </label>
+                </div>
+                
+                <div id="quiz-list" class="quiz-grid">
+                    <!-- Quiz items will be injected here -->
+                </div>
+            </main>
+        </div>
+
+        <!-- View: Admin -->
+        <div id="view-admin" class="view">
+            <header class="quiz-header">
+                <button id="btn-admin-back" class="icon-btn">←</button>
+                <div style="flex-grow:1;">
+                    <h1 style="margin: 0; font-size: 1.8rem;">Admin Dashboard</h1>
+                </div>
+            </header>
+            
+            <main>
+                <div style="display:flex; justify-content:space-between; margin-bottom: 24px; align-items:center;">
+                    <p style="color:var(--text-muted); margin:0;">View, edit raw markdown, or wipe data.</p>
+                    <button id="btn-admin-wipe-all" class="btn secondary-btn small-btn delete-btn">Wipe DB</button>
+                </div>
+                <div id="admin-quiz-list" style="display:flex; flex-direction:column; gap:16px;">
+                    <!-- Admin records injected here -->
+                </div>
+            </main>
+        </div>
+        
+        <!-- Modal for Admin Editing -->
+        <div id="admin-edit-modal" class="modal">
+            <div class="modal-content" style="max-width: 800px; width: 95%;">
+                <h2 id="admin-edit-title">Edit Quiz Markdown</h2>
+                <textarea id="admin-edit-textarea" style="width:100%; height:400px; padding:12px; font-family:monospace; margin-bottom: 16px; background:#000; color:var(--text-main); border:1px solid var(--border-color); border-radius:var(--radius-md); box-sizing: border-box;"></textarea>
+                <div style="display:flex; gap:8px; justify-content:flex-end;">
+                    <button id="btn-admin-cancel" class="btn secondary-btn">Cancel</button>
+                    <button id="btn-admin-save" class="btn primary-btn">Save Changes</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- View: Active Quiz -->
+        <div id="view-quiz" class="view">
+            <header class="quiz-header">
+                <button id="btn-back" class="icon-btn">←</button>
+                <div class="progress-container">
+                    <div id="progress-bar" class="progress-bar"></div>
+                </div>
+                <div id="score-display" class="score-display">0/0</div>
+            </header>
+
+            <div class="auto-advance-row">
+                <label class="toggle-label">
+                    <input type="checkbox" id="auto-advance-toggle">
+                    <span>Auto-advance</span>
+                </label>
+            </div>
+
+            <main id="quiz-container" class="quiz-container">
+                <!-- Question will be injected here -->
+            </main>
+
+            <div id="question-nav" class="question-nav">
+                <!-- Question navigator pills injected here -->
+            </div>
+        </div>
+        
+        <!-- Modal for Deleting Quizzes -->
+        <div id="delete-modal" class="modal">
+            <div class="modal-content">
+                <h2>Storage Limit Reached</h2>
+                <p>You can only store up to 10 quizzes. Please delete one to make room.</p>
+                <div id="modal-quiz-list" class="modal-quiz-list">
+                    <!-- Quizzes to delete will be injected here -->
+                </div>
+                <button id="btn-cancel-delete" class="btn secondary-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="db.js"></script>
+    <script src="parser.js"></script>
+    <script src="app.js"></script>
+    
+    <script>
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('SW registered'))
+                    .catch(err => console.error('SW registration failed', err));
+            });
+        }
+    </script>
+</body>
+</html>
