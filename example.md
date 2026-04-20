@@ -1,13 +1,3 @@
-# Any Quiz Anytime
-Any Quiz Anytime: The simple PWA for offline learning.
-- Load & Learn: Import any quiz via Markdown files.
-- Local First: Your data stays on your device—no cloud, no tracking.
-- Easy Setup: Just name your file (e.g., Example.md) and follow the supported format.
-
-
-# Example
-
-```
 #### **QUESTION: 1**
 
 Example question: What is the capital of Poland?
@@ -26,4 +16,3 @@ Warsaw, officially the Capital City of Warsaw, is the capital and largest city o
 ##### **Reference:**
 
 [https://en.wikipedia.org/wiki/Warsaw](https://en.wikipedia.org/wiki/Warsaw)
-```
