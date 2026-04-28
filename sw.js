@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aqa-v2';
+const CACHE_NAME = 'aqa-v3';
 const ASSETS = [
     './',
     './index.html',

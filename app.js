@@ -297,40 +297,128 @@ document.addEventListener('DOMContentLoaded', async () => {
         const optionsList = document.createElement('div');
         optionsList.className = 'options-list';
 
-        question.options.forEach(opt => {
-            const btn = document.createElement('button');
-            btn.className = 'option-btn';
-            
-            const label = document.createElement('span');
-            label.className = 'label';
-            label.textContent = opt.id;
-            btn.appendChild(label);
+        let currentSelections = [];
 
-            const content = document.createElement('div');
-            content.className = 'option-content';
-            content.innerHTML = window.marked ? window.marked.parse(opt.text) : opt.text;
-            btn.appendChild(content);
+        if (question.hasOptions) {
+            question.options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                
+                const label = document.createElement('span');
+                label.className = 'label';
+                label.textContent = opt.id;
+                btn.appendChild(label);
 
-            if (answered) {
-                btn.disabled = true;
-                const isThisOptionCorrect = question.correctAnswers.includes(opt.id);
-                const isThisOptionSelected = answered.selected === opt.id;
+                const content = document.createElement('div');
+                content.className = 'option-content';
+                content.innerHTML = window.marked ? window.marked.parse(opt.text) : opt.text;
+                btn.appendChild(content);
 
-                if (isThisOptionCorrect && isThisOptionSelected) {
-                    btn.classList.add('selected-correct');
-                } else if (!isThisOptionCorrect && isThisOptionSelected) {
-                    btn.classList.add('selected-wrong');
-                } else if (isThisOptionCorrect) {
-                    btn.classList.add('correct');
+                if (answered) {
+                    btn.disabled = true;
+                    const isThisOptionCorrect = question.correctAnswers.includes(opt.id);
+                    const isThisOptionSelected = Array.isArray(answered.selected) 
+                        ? answered.selected.includes(opt.id) 
+                        : answered.selected === opt.id;
+
+                    if (isThisOptionCorrect && isThisOptionSelected) {
+                        btn.classList.add('selected-correct');
+                    } else if (!isThisOptionCorrect && isThisOptionSelected) {
+                        btn.classList.add('selected-wrong');
+                    } else if (isThisOptionCorrect) {
+                        btn.classList.add('correct');
+                    } else if (isThisOptionSelected) {
+                        btn.classList.add('selected-wrong');
+                    }
+                } else {
+                    if (question.correctAnswers.length > 1) {
+                        btn.onclick = () => {
+                            if (currentSelections.includes(opt.id)) {
+                                currentSelections = currentSelections.filter(id => id !== opt.id);
+                                btn.classList.remove('selected');
+                            } else {
+                                currentSelections.push(opt.id);
+                                btn.classList.add('selected');
+                            }
+                            const submitBtn = document.getElementById('submit-multi-btn');
+                            if (submitBtn) {
+                                submitBtn.disabled = currentSelections.length === 0;
+                            }
+                        };
+                    } else {
+                        btn.onclick = () => selectOption(opt.id, question.correctAnswers);
+                    }
                 }
-            } else {
-                btn.onclick = () => selectOption(opt.id, question.correctAnswers);
+
+                optionsList.appendChild(btn);
+            });
+
+            quizContainer.appendChild(optionsList);
+            
+            if (!answered && question.correctAnswers.length > 1) {
+                const submitAction = document.createElement('div');
+                submitAction.className = 'next-action';
+                const submitBtn = document.createElement('button');
+                submitBtn.className = 'btn primary-btn';
+                submitBtn.textContent = 'Submit Answer';
+                submitBtn.id = 'submit-multi-btn';
+                submitBtn.disabled = true;
+                submitBtn.onclick = () => {
+                    const isCorrect = currentSelections.length === question.correctAnswers.length && 
+                                      currentSelections.every(id => question.correctAnswers.includes(id));
+                    
+                    currentProgress.answers[currentProgress.currentIndex] = {
+                        selected: currentSelections,
+                        correct: isCorrect
+                    };
+                    window.quizDB.saveProgress(currentProgress).then(() => {
+                        const autoAdvance = document.getElementById('auto-advance-toggle')?.checked;
+                        if (autoAdvance) {
+                            currentProgress.currentIndex++;
+                            return window.quizDB.saveProgress(currentProgress);
+                        }
+                    }).then(() => {
+                        renderCurrentQuestion();
+                    });
+                };
+                submitAction.appendChild(submitBtn);
+                quizContainer.appendChild(submitAction);
             }
+        } else {
+            if (!answered) {
+                const submitAction = document.createElement('div');
+                submitAction.className = 'next-action';
+                const submitBtn = document.createElement('button');
+                submitBtn.className = 'btn primary-btn';
+                submitBtn.textContent = 'Show Answer';
+                submitBtn.onclick = async () => {
+                    currentProgress.answers[currentProgress.currentIndex] = {
+                        selected: question.correctAnswers,
+                        correct: true // Treat as correct since it's just a show answer
+                    };
+                    await window.quizDB.saveProgress(currentProgress);
+                    
+                    const autoAdvance = document.getElementById('auto-advance-toggle')?.checked;
+                    if (autoAdvance) {
+                        currentProgress.currentIndex++;
+                        await window.quizDB.saveProgress(currentProgress);
+                    }
+                    
+                    renderCurrentQuestion();
+                };
+                submitAction.appendChild(submitBtn);
+                quizContainer.appendChild(submitAction);
+            } else {
+                // Show what the actual answer was intended to be if we have it
+                if (question.correctAnswers && question.correctAnswers.length > 0 && question.correctAnswers[0] !== '') {
+                    const ansDiv = document.createElement('div');
+                    ansDiv.style.cssText = 'padding: 12px; background: var(--card-bg); border-left: 4px solid var(--primary-color); border-radius: var(--radius-sm); margin-bottom: 16px;';
+                    ansDiv.innerHTML = `<strong>Answer:</strong> ${question.correctAnswers.join(', ')}`;
+                    quizContainer.appendChild(ansDiv);
+                }
+            }
+        }
 
-            optionsList.appendChild(btn);
-        });
-
-        quizContainer.appendChild(optionsList);
 
         // Explanation
         if (answered) {
@@ -350,9 +438,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             expDiv.innerHTML = expHtml;
             quizContainer.appendChild(expDiv);
 
-            // Next button
+            // Next / Reset actions
             const nextAction = document.createElement('div');
             nextAction.className = 'next-action';
+
+            const resetBtn = document.createElement('button');
+            resetBtn.className = 'btn secondary-btn';
+            resetBtn.style.marginRight = '12px';
+            resetBtn.textContent = 'Reset Question';
+            resetBtn.onclick = async () => {
+                delete currentProgress.answers[currentProgress.currentIndex];
+                await window.quizDB.saveProgress(currentProgress);
+                renderCurrentQuestion();
+            };
+            nextAction.appendChild(resetBtn);
+
             const nextBtn = document.createElement('button');
             nextBtn.className = 'btn primary-btn';
             nextBtn.textContent = qIndex === currentQuiz.questions.length - 1 ? 'Finish' : 'Next Question';
@@ -483,7 +583,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             for (let i = 0; i < quiz.questions.length; i++) {
                 const ans = progress.answers[i];
                 if (ans) {
-                    breakdown += `  Q${i + 1}: ${ans.selected} ${ans.correct ? '✓' : '✗'}`;
+                    const selStr = Array.isArray(ans.selected) ? ans.selected.join(',') : ans.selected;
+                    breakdown += `  Q${i + 1}: ${selStr} ${ans.correct ? '✓' : '✗'}`;
                 }
             }
 

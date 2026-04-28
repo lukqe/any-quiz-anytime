@@ -64,28 +64,31 @@ function parseSingleQuestionChunk(chunk) {
         });
     }
 
-    if (optionMarkers.length === 0) {
-        throw new Error("No options found.");
-    }
-
-    let firstOptionIndex = optionMarkers[0].index;
-    
-    // The end of the options section is where "Answer(s):" starts
+    let hasOptions = true;
     const answerMatchIndex = chunk.search(answerRegex);
 
-    for (let i = 0; i < optionMarkers.length; i++) {
-        const current = optionMarkers[i];
-        const next = optionMarkers[i + 1];
-        const end = next ? next.index : (answerMatchIndex !== -1 ? answerMatchIndex : chunk.length);
+    if (optionMarkers.length === 0) {
+        hasOptions = false;
+        // Handle questions without explicit options (e.g., Hotspot image questions)
+        let endOfQuestionText = answerMatchIndex !== -1 ? answerMatchIndex : chunk.length;
+        questionText = chunk.substring(0, endOfQuestionText).trim();
+    } else {
+        let firstOptionIndex = optionMarkers[0].index;
         
-        options.push({
-            id: current.id,
-            text: chunk.substring(current.contentStart, end).trim()
-        });
-    }
+        for (let i = 0; i < optionMarkers.length; i++) {
+            const current = optionMarkers[i];
+            const next = optionMarkers[i + 1];
+            const end = next ? next.index : (answerMatchIndex !== -1 ? answerMatchIndex : chunk.length);
+            
+            options.push({
+                id: current.id,
+                text: chunk.substring(current.contentStart, end).trim()
+            });
+        }
 
-    // 3. Question Text (everything before the first option string)
-    questionText = chunk.substring(0, firstOptionIndex).trim();
+        // 3. Question Text (everything before the first option string)
+        questionText = chunk.substring(0, firstOptionIndex).trim();
+    }
 
     // 4. Explanation and Reference
     // They appear after the options and answer.
@@ -108,6 +111,7 @@ function parseSingleQuestionChunk(chunk) {
     return {
         questionText,
         options,
+        hasOptions,
         correctAnswers,
         explanation,
         reference
